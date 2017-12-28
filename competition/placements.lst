@@ -1,0 +1,5 @@
+random|-p random
+eclipsed, tradeoff+trick|-p eclipsed -c max_eclipse_tradeoff=2:min_eclipse_trick=true
+eclipsed, strict+trick|-p eclipsed -c max_eclipse_tradeoff=0:min_eclipse_trick=true
+eclipsed, tradeoff no_trick|-p eclipsed -c max_eclipse_tradeoff=2:min_eclipse_trick=false
+eclipsed, strict no_trick|-p eclipsed -c max_eclipse_tradeoff=0:min_eclipse_trick=false
