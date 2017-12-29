@@ -28,6 +28,7 @@ static VisualType	g_vtype		= VT_COMBINED;
 static unsigned int g_seed		= time(NULL);
 static unsigned int g_delay		= 100;
 static unsigned int g_num		= 10000;
+static bool			g_key_pause = false;
 
 static RandomPlacement			g_rp;
 static EclipsedPlacement		g_ep;
@@ -58,6 +59,7 @@ static int print_usage(char* argv0)
 	std::cout << "\t--delay|-d <delay_ms>         : use specified delay between steps, in milliseconds. "
 		"Not applicable for none/console_short visualization. (default=" << g_delay << ")\n";
 	std::cout << "\t--seed|-s <seed>              : apply specified seed for random() algorithm before start\n";
+	std::cout << "\t--key-pause|-k                : make pause until keypress to show each decision step\n";
 	std::cout << "\n";
 
 	std::cout << "Avaliable algo_names: ";
@@ -109,7 +111,9 @@ static bool parse_args(int argc, char* argv[])
 			return false;
 		}
 
-		if (arg == "--algo" || arg == "-a") {
+		if (arg == "--key-pause" || arg == "-k") {
+			g_key_pause = true;
+		} else if (arg == "--algo" || arg == "-a") {
 			NEED_2ND_PARAM("--algo")
 			g_algo = argv[++i];
 
@@ -262,6 +266,22 @@ static void show_field(const PlacementInfo& field, const DSBAlgoGenricData& gdat
 	show_next_shot(field, gdata, shot_hints, NULL, sres);
 }
 
+static bool visualization_delay_or_pause(unsigned int delay_factor)
+{
+	if (g_key_pause) {
+		if (g_visual == VE_SDL_OPENGL) {
+			if (!dsb_sdl_opengl_visual_pause()) {
+				return false;
+			}
+		} else {
+			// TODO
+		}
+	} else {
+		SDL_Delay(g_delay*delay_factor);
+	}
+	return true;
+}
+
 constexpr unsigned int max_shots_per_game = FIELD_SIZE*FIELD_SIZE + 1;
 
 // Single game process
@@ -307,7 +327,9 @@ static signed int play_one_game(const DSBAlgoApi* algo, const DSBPlacementApi* p
 		/* Visualization stage #1: show the field with hints from the algo, no fire position yet */
 		show_field(field, gdata, shot_hints.get());
 		if (g_visual != VE_NONE && g_visual != VE_CONSOLE_SHORT) {
-			SDL_Delay(g_delay);
+			if (!visualization_delay_or_pause(1)) {
+				return -1;
+			}
 		}
 
 		if (g_visual == VE_SDL_OPENGL) {
@@ -320,7 +342,9 @@ static signed int play_one_game(const DSBAlgoApi* algo, const DSBPlacementApi* p
 		show_next_shot(field, gdata, shot_hints.get(), &coords);
 
 		if (g_visual != VE_NONE && g_visual != VE_CONSOLE_SHORT) {
-			SDL_Delay(g_delay*2);
+			if (!visualization_delay_or_pause(2)) {
+				return -1;
+			}
 		}
 
 		ShotResult sres = get_shot_res(field, coords, gdata);
@@ -343,7 +367,9 @@ static signed int play_one_game(const DSBAlgoApi* algo, const DSBPlacementApi* p
 
 		if (g_visual != VE_NONE && g_visual != VE_CONSOLE_SHORT) {
 			unsigned int delay_factor = (sres == SR_MISSED) ? 1 : 3;
-			SDL_Delay(g_delay*delay_factor);
+			if (!visualization_delay_or_pause(delay_factor)) {
+				return -1;
+			}
 		}
 	} while (res != ASR_WON && gdata._step_number < max_shots_per_game);
 
@@ -355,7 +381,9 @@ static signed int play_one_game(const DSBAlgoApi* algo, const DSBPlacementApi* p
 			std::cout << "Won with " << gdata._step_number << " shots!\n";
 
 			const unsigned int game_over_factor = 20;
-			SDL_Delay(g_delay*game_over_factor);
+			if (!visualization_delay_or_pause(game_over_factor)) {
+				return -1;
+			}
 		}
 
 		return gdata._step_number;

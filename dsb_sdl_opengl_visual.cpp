@@ -345,6 +345,22 @@ bool dsb_sdl_opengl_visual_init(const std::string &placement_name, const std::st
 	return true;
 }
 
+bool dsb_sdl_opengl_visual_pause()
+{
+	SDL_Event event;
+	bool is_paused = true;
+	while (is_paused) {
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) {
+				is_paused = false;
+			} else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+				return false;
+			}
+		}
+		SDL_Delay(10);
+	}
+	return true;
+}
 
 bool dsb_sdl_opengl_visual_process_events()
 {
@@ -361,16 +377,10 @@ bool dsb_sdl_opengl_visual_process_events()
 						return false;
 					case SDLK_SPACE: {
 						std::cout << "Paused, press SPACE again to continue..." << std::endl;
-
-						bool is_paused = true;
-						while (is_paused) {
-							while (SDL_PollEvent(&event)) {
-								if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) {
-									is_paused = false;
-								}
-							}
-							SDL_Delay(10);
+						if (!dsb_sdl_opengl_visual_pause()) {
+							return false;
 						}
+
 						break;
 					}
 					default:
