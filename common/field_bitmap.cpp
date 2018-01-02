@@ -37,6 +37,26 @@ bool FieldBitmap::is_intersected(signed int y, FieldRow mask) const
 	return ((_data[y - FBC_MIN] & mask) != 0);
 }
 
+#ifdef __GNUC__	// For gcc compiler we use builtin __builtin_popcountll function
+static_assert(sizeof(unsigned long long)==8, "unsigned long long data type is not 64-bit integral");
+#define POPCOUNT64 __builtin_popcountll
+#else
+constexpr uint64_t m1  = 0x5555555555555555; // binary: 0101...
+constexpr uint64_t m2  = 0x3333333333333333; // binary: 00110011..
+constexpr uint64_t m4  = 0x0f0f0f0f0f0f0f0f; // binary:  4 zeros,  4 ones ...
+
+inline int popcount64b(uint64_t x)
+{
+    x -= (x >> 1) & m1;             //put count of each 2 bits into those 2 bits
+    x = (x & m2) + ((x >> 2) & m2); //put count of each 4 bits into those 4 bits 
+    x = (x + (x >> 4)) & m4;        //put count of each 8 bits into those 8 bits 
+    x += x >>  8;  //put count of each 16 bits into their lowest 8 bits
+    x += x >> 16;  //put count of each 32 bits into their lowest 8 bits
+    x += x >> 32;  //put count of each 64 bits into their lowest 8 bits
+    return x & 0x7f;
+}
+#define POPCOUNT64 popcount64b
+#endif
 
 int FieldBitmap::popcount3(signed int y, FieldRow mask) const
 {
@@ -46,29 +66,22 @@ int FieldBitmap::popcount3(signed int y, FieldRow mask) const
 	FieldRow v2 = (_data[y - FBC_MIN    ] & mask);
 	FieldRow v3 = (_data[y - FBC_MIN + 1] & mask);
 
-#ifdef __GNUC__	// For gcc compiler we use builtin __builtin_popcountll function
-	static_assert(sizeof(unsigned long long)==8, "unsigned long long data type is not 64-bit integral");
-
 	// try to merge all three rows into single data type and get a popcount in one call
-	// (if FIELD_SIZE is too large and three FieldRow values don't fit into single ULL
+	// (if FIELD_SIZE is too large and three FieldRow values don't fit into single 64-bit value
 	// then we should call popcount function few times instead)
 #if (FIELD_SIZE + BORDER_EXTRA*2)*3 <= 64
 	constexpr unsigned int FIELD_ROW_SIZE = (FIELD_SIZE + BORDER_EXTRA*2);
 	unsigned long long v = v1;
 	v |= (((unsigned long long)v2) << FIELD_ROW_SIZE);
 	v |= (((unsigned long long)v3) << (FIELD_ROW_SIZE*2));
-	return	__builtin_popcountll(v);
+	return POPCOUNT64(v);
 #elif FIELD_SIZE + BORDER_EXTRA*2 <= 64
-	int res = __builtin_popcountll((unsigned long long)v1);
-	res += __builtin_popcountll((unsigned long long)v2);
-	res += __builtin_popcountll((unsigned long long)v3);
+	int res = POPCOUNT64((unsigned long long)v1);
+	res += POPCOUNT64((unsigned long long)v2);
+	res += POPCOUNT64((unsigned long long)v3);
 	return res;
 #else
 #	error oops - Single FieldRow field doesnt fit in 64 bits, need to split on few parts
-#endif
-
-#else
-#	error TODO - add popcount builtin call for this compiler
 #endif
 }
 
