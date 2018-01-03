@@ -27,7 +27,7 @@ public:
 	}
 private:
 	void get_score4boat(PositionScore& score_map, unsigned int size);
-	void fill_shot_hints(const PositionScore& score_map, ShotHints& shot_hints);
+	void fill_shot_hints(const PositionScore& score_map, const FewFieldCoords& good_shots, ShotHints& shot_hints);
 };
 
 #endif // __ECLIPSED_ALGO_H__

@@ -79,14 +79,26 @@ void EclipsedAlgo::get_score4boat(PositionScore& score_map, unsigned int size)
 	}
 }
 
-void EclipsedAlgo::fill_shot_hints(const PositionScore& score_map, ShotHints& shot_hints)
+void EclipsedAlgo::fill_shot_hints(const PositionScore& score_map, const FewFieldCoords& good_shots, ShotHints& shot_hints)
 {
 	for (int x = 0; x < FIELD_SIZE; ++x) {
 		for (int y=0; y<FIELD_SIZE; ++y) {
 			signed short score = score_map.get(x, y);
 			if (score > 0) {
 				FieldCoords coord(x, y);
+				bool is_good = false;
+
+				for (auto it=good_shots.begin(); it != good_shots.end(); ++it) {
+					if (*it == coord) {
+						is_good = true;
+						break;
+					}
+				}
 				ShotHintData data = { SH_NUMBERED, score, 0};
+				if (is_good) {
+					data.hint_flags = SH_COLORED_AND_NUMBERED;
+					data.hint_color = 1;
+				}
 				shot_hints[coord] = data;
 			}
 		}
@@ -120,11 +132,8 @@ AlgoStepRes EclipsedAlgo::get_next_shot_or_bail(FieldCoords& coords, ShotHints* 
 #endif
 
 	if (max_score > 0) {
-		if (shot_hints != NULL) {
-			fill_shot_hints(score_map, *shot_hints);
-		}
 		FewFieldCoords good_shots;
-		float deviation = 0.0f;	// allowed deviation from the best choice to be less predictible
+		float deviation = 0.02f; // allowed deviation from the best choice to be less predictible
 		// calculate threshold of the score what is good enough to shoot
 		signed int thr_score = ceilf((max_score-min_score)*(1.0f-deviation)) + min_score;
 		assert(thr_score>0);
@@ -137,6 +146,11 @@ AlgoStepRes EclipsedAlgo::get_next_shot_or_bail(FieldCoords& coords, ShotHints* 
 				}
 			}
 		}
+
+		if (shot_hints != NULL) {
+			fill_shot_hints(score_map, good_shots, *shot_hints);
+		}
+
 		assert(good_shots.size()>0);
 		coords = good_shots[random() % good_shots.size()];
 #if DEBUG>0

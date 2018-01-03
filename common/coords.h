@@ -44,10 +44,16 @@ struct FieldCoords {
 		_y = tmp;
 	}
 
-	bool operator<(const FieldCoords& b) const {
+	bool operator<(const FieldCoords& b) const
+	{
 		if (_y < b._y) return true;
 		if (_y > b._y) return false;
 		return (_x < b._x);
+	}
+
+	bool operator==(const FieldCoords& b) const
+	{
+		return (_x == b._x) && (_y == b._y);
 	}
 };
 
