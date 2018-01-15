@@ -1,7 +1,12 @@
 # dsb
 Deadly Sea Battle (DSB) - AI competition
+DSB program is aimed to find the best algorithms available for humans
+for placing and shooting boats in classic “sea battle” game.
+AI algorithms compete against each others to find the most optimal way for defeating your enemy in this game. 
 
-Install dependencies:
+For detailed documentation, see doc/ directory.
+
+#Install dependencies:
 -SDL2
 -GLEW
 
