@@ -355,6 +355,8 @@ bool dsb_sdl_opengl_visual_pause()
 				is_paused = false;
 			} else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
 				return false;
+			} else if (event.type == SDL_QUIT) {
+				return false;
 			}
 		}
 		SDL_Delay(10);
